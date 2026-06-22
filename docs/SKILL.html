@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linearizer — skill (human operator guide)</title>
+<style>
+  :root{
+    --bg:#0b0f14;--panel:#121821;--line:#243140;--ink:#e6edf3;--muted:#9fb0c0;--faint:#6f8298;
+    --green:#3fb950;--amber:#d29922;--red:#f85149;--blue:#58a6ff;--violet:#a371f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0f14,#0d131b);color:var(--ink);
+       font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:40px 22px 80px}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+  code{background:#0e141c;border:1px solid var(--line);border-radius:5px;padding:1px 5px;
+       font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:#cdd9e5}
+  pre{background:#0e141c;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;
+      font:12.5px/1.5 ui-monospace,Menlo,monospace;color:#cdd9e5}
+  h1{font-size:29px;margin:0 0 6px;letter-spacing:-.5px}
+  h2{font-size:20px;margin:44px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 8px;color:#cdd9e5}
+  p{margin:10px 0}
+  .sub{color:var(--muted);font-size:14px}
+  .meta{color:var(--faint);font-size:13px;margin-top:8px}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--violet);
+        border-radius:10px;padding:13px 16px;margin:16px 0;font-size:14px}
+  .pills span{display:inline-block;font-size:12px;border:1px solid var(--line);color:var(--muted);
+        border-radius:20px;padding:3px 11px;margin:3px 5px 3px 0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tbody tr:hover{background:rgba(88,166,255,.04)}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:16px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-left:3px solid var(--blue)}
+  .card.alt{border-left-color:var(--violet)} .card.ok{border-left-color:var(--green)}
+  .card h4{margin:0 0 4px;font-size:15px;display:flex;gap:8px;align-items:center}
+  .card .n{font-size:11px;color:var(--faint);font-weight:700;background:#0e141c;border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+  .card p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+  ul.clean{list-style:none;padding:0;margin:10px 0}
+  ul.clean li{padding:6px 0 6px 24px;position:relative;border-bottom:1px solid rgba(36,49,64,.5);font-size:14px}
+  ul.clean li:last-child{border-bottom:0}
+  li.ok::before{content:"\2713";position:absolute;left:0;color:var(--green);font-weight:700}
+  li.dot::before{content:"\25C6";position:absolute;left:0;color:var(--blue);font-size:9px;top:11px}
+  .foot{color:var(--faint);font-size:13px;border-top:1px solid var(--line);margin-top:42px;padding-top:16px}
+  @media(max-width:740px){.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Linearizer</h1>
+  <div class="sub">Human operator guide. Flattens <b>any repository's AI-source</b> into a
+  <b>single</b> ordered, token-budgeted bundle with a table of contents — so a whole project (or one
+  layer) can be fed to an AI in one prompt, or read top-to-bottom by a human. "Linearization" =
+  serializing a tree/graph into one ordered document.</div>
+  <div class="meta">Status: built (self-test passing) &nbsp;·&nbsp; Targets: Claude Code · Codex · Cursor &nbsp;·&nbsp; Zero dependencies (Node ≥18)</div>
+
+  <div class="note"><b>Convention.</b> This <code>README.html</code> is the human view. The
+  AI-optimized source of truth is <a href="./README.md"><code>README.md</code></a> —
+  <code>.md</code> = AI optimization, <code>.html</code> = human view.</div>
+
+  <h2>What it produces</h2>
+  <p>One Markdown file (default <code>LINEARIZED.md</code>): a header, a <b>table of contents</b>
+  (every file with a token estimate and included/omitted status), an <b>omissions</b> list when a
+  budget drops files, then each file wrapped in <code>===== path =====</code> delimiters. A sample
+  is in <a href="./example-output/LINEARIZED.md"><code>example-output/LINEARIZED.md</code></a>.</p>
+
+  <div class="pills">
+    <span>read-only (writes 1 bundle)</span>
+    <span>deterministic (same repo → identical bundle)</span>
+    <span>no tokenizer / no network</span>
+    <span>excludes .html + binaries</span>
+  </div>
+
+  <h2>Run it</h2>
+  <pre>node tasks/skill-linearizer/scripts/linearize.mjs &lt;repo&gt; \
+     [--out &lt;file&gt;] [--max-tokens N] \
+     [--include &lt;glob&gt;] [--exclude &lt;glob&gt;] \
+     [--order reading|graph|path]
+
+node tasks/skill-linearizer/scripts/self-test.mjs   # offline determinism + behavior gate</pre>
+  <ul class="clean">
+    <li class="dot">Default <code>&lt;repo&gt;</code> is <code>.</code>; default output is
+      <code>LINEARIZED.md</code> at the repo root — use <code>--out /tmp/&lt;name&gt;.md</code> to avoid
+      overwriting in place.</li>
+    <li class="dot"><code>--include</code> / <code>--exclude</code> are repeatable globs, additive
+      on top of the default policy.</li>
+    <li class="dot">The skill excludes its own install directory, so it never bundles itself.</li>
+  </ul>
+
+  <h2>Ordering modes</h2>
+  <div class="cards">
+    <div class="card ok"><h4><span class="n">reading</span> default</h4>
+      <p>Entry contract (<code>CLAUDE.md</code>/<code>AGENTS.md</code>) + <code>MANIFEST.json</code>
+      sequence first — entry docs, then docs they reference in document order, then manifest-named
+      files — then the rest by path.</p></div>
+    <div class="card alt"><h4><span class="n">graph</span></h4>
+      <p>Topologically orders markdown by cross-reference links: a doc comes <b>after</b> the docs
+      it links to. Cycles broken deterministically.</p></div>
+    <div class="card"><h4><span class="n">path</span></h4>
+      <p>Plain lexical path order.</p></div>
+    <div class="card"><h4><span class="n">budget</span> --max-tokens</h4>
+      <p>Includes files in order until the budget is hit, then <b>stops</b> and lists every omitted
+      file. Never silently truncates.</p></div>
+  </div>
+
+  <h2>The 5 functionalities</h2>
+  <table>
+    <thead><tr><th>#</th><th>Functionality</th><th>Stage</th></tr></thead>
+    <tbody>
+      <tr><td>01</td><td><a href="./functionalities/01-file-selection.md">File selection</a></td><td><code>collect()</code></td></tr>
+      <tr><td>02</td><td><a href="./functionalities/02-ordering.md">Ordering (reading/graph/path)</a></td><td><code>order()</code></td></tr>
+      <tr><td>03</td><td><a href="./functionalities/03-token-budget-and-omissions.md">Token budget &amp; omissions</a></td><td><code>pack()</code></td></tr>
+      <tr><td>04</td><td><a href="./functionalities/04-toc-and-delimiters.md">TOC &amp; delimiters</a></td><td><code>pack()</code></td></tr>
+      <tr><td>05</td><td><a href="./functionalities/05-output.md">Output</a></td><td><code>pack()</code> → write</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Selection policy</h2>
+  <p><b>Included by default:</b> markdown/text/data (<code>.md .mdc .txt .json .yaml .toml</code> …)
+  and common code (<code>.ts .tsx .js .mjs .py .go .rs</code> …). <b>Always excluded:</b>
+  <code>.html</code> (the human view), images, fonts, media, archives, lockfiles, and any file with
+  a NUL byte (binary). <code>node_modules/</code>, <code>.git/</code>, <code>dist/</code>, build
+  output are never walked.</p>
+
+  <h2>Determinism</h2>
+  <ul class="clean">
+    <li class="ok">Same repo state + options → byte-identical bundle (no clock/random in the body).</li>
+    <li class="ok">Every directory read, link resolution, and graph traversal sorts before iterating.</li>
+    <li class="ok">Token estimate = <code>ceil(chars / 4)</code> — documented, model-agnostic, reproducible.</li>
+    <li class="ok">Read-only apart from the single output file.</li>
+  </ul>
+
+  <div class="foot">
+    Spec / AI source: <a href="./README.md"><code>README.md</code></a> &nbsp;·&nbsp;
+    Cross-tool shells: <code>.claude/skills/linearizer/SKILL.md</code>,
+    <code>.cursor/rules/linearizer.mdc</code> &nbsp;·&nbsp;
+    Convention: <code>.md</code> = AI-optimized, <code>.html</code> = human view.
+  </div>
+
+</div>
+</body>
+</html>

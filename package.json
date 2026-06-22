@@ -1,0 +1,40 @@
+{
+  "name": "@softeneers/linearizer",
+  "version": "1.0.0",
+  "description": "Flatten a repository's AI-source into one ordered, token-budgeted context bundle with a table of contents.",
+  "type": "module",
+  "bin": {
+    "linearizer": "./scripts/linearize.mjs"
+  },
+  "scripts": {
+    "test": "node scripts/self-test.mjs",
+    "self-test": "node scripts/self-test.mjs"
+  },
+  "files": [
+    "scripts"
+  ],
+  "keywords": [
+    "context",
+    "llm",
+    "tokens",
+    "bundle",
+    "ai",
+    "flatten"
+  ],
+  "author": "Softeneers <damian.tudor03@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tunder007/linearizer.git"
+  },
+  "homepage": "https://github.com/tunder007/linearizer#readme",
+  "bugs": {
+    "url": "https://github.com/tunder007/linearizer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
